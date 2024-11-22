@@ -1,0 +1,386 @@
+---
+title: "Most Watched Movies and TV Shows Personal Project"
+author: "Kira Novitchkova-Burbank"
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#this R markdown file has a theme that requires prettydoc to be installed
+library(prettydoc)
+```
+
+### Why I'm doing this project.
+The reason why I'm doing this project is because I like watching movies and tv shows. Also, I thought it would be fun to visualize this same data in both R and Power BI.
+
+I got this data from kaggle: https://www.kaggle.com/datasets/shiivvvaam/most-watched-movies-and-tv-shows
+
+
+First, I do the initial setup and read in the data.
+```{r}
+#setup and reading in the data
+setwd("C:\\Users\\vicno\\OneDrive\\Documents\\R")
+
+library(readxl)
+
+not_df_data <- read_excel('flixpatrol.xlsx') #changed this from csv to .xlsx file because R and I were having a problem accessing the file
+
+#putting data in a data frame and making sure it loads
+data_na <- data.frame(not_df_data)
+head(data_na)
+```
+
+Removing missing values.
+```{r}
+#Remove missing values
+data <- na.omit(data_na)
+head(data, n=20)
+```
+
+
+### What are the Top 10 most watched Movies and TV Shows?
+```{r}
+#first 11 rows
+head(data, n=11)
+```
+Note: The reason why I printed out the first 11 rows instead of first 10 rows is because I noticed that the 2021 Drama TV Show, "Ginny & Georgia", appeared twice for some reason with different watch times.
+
+
+Observations:
+Based on this result, the top 10 movies and tv shows are: "The Night Agent", "Ginny & Georgia", "The Glory", "Wednesday", "Queen Charlotte: A Bridgerton Story", "You", "La Reina del Sur", "Outer Banks", "FUBAR", and "Manifest". I find it interesting that "The Night Agent" has around 150 million more than the 2nd most popular show. That's a really big gap in views. I also think it's interesting that all of the top ten are tv shows and none of them are movies. Lastly, I think that it's interesting that most of the tv shows premiered after 2020 and that most of them are Dramas.
+
+### What are the Top 20 most watched TV Shows?
+```{r}
+library(tidyverse)
+
+#filtering out only the tv shows
+most_pop_tv_shows <- data %>%
+  filter(Type == "TV Show")
+
+#first 21 rows
+head(most_pop_tv_shows, n=21)
+```
+Note: Again, I printed out the first 21 rows because I noticed that the 2021 Drama TV Show, "Ginny & Georgia", appeared twice for some reason with different watch times.
+
+Observations:
+Based on the results, the top 20 most watched tv shows are: "The Night Agent", "Ginny & Georgia", "The Glory", "Wednesday", "Queen Charlotte: A Bridgerton Story", "You", "La Reina del Sur", "Outer Banks", "FUBAR", "Manifest", "Kaleidoscope", "Firefly Lane", "Physical: 100", "Crash Course In Romance", "Love Is Blind", "Beef", "The Diplomat", "Perfil falso", "Vikings: Valhalla", and "XO, Kitty". It's interesting that there are only 3 tv shows that premiered in the 2010's all of the others premiered in the 2020's. I didn't realize that this many new tv shows are that popular. Lastly, there is around a 600 million view gap between the 1st to 20th most popular tv show. That is a pretty big gap.
+
+
+### What are the Top 20 most watched movies?
+```{r}
+#filtering out only the movies
+most_pop_movies <- data %>%
+  filter(Type == "Movie")
+
+#first 20 rows
+head(most_pop_movies, n=20)
+```
+
+Observations:
+Based on results, the top 20 most watched movies are: "The Mother", "Luther: The Fallen Sun", "Extraction 2", "You People", "Murder Mystery 2", "Your Place or Mine", "Glass Onion: A Knives Out Mystery", "We Have a Ghost", "The Pale Blue Eye", "AKA", "Minions: The Rise of Gru", "Hunger", "Murder Mystery", "Extraction", "The Last Kingdom: Seven Kings Must Die", "Roald Dahl's Matilda the Musical", "Sing", "All Quiet on the Western Front", "Chupa", "PAW Patrol: The Movie". I find it interesting that over half of these movies have premiered in 2023. Lastly, there is only around a 170 million view gap between the 1st and 20th most popular movie. This is a significantly smaller gap than that of the tv shows.
+
+
+### What are the Top 10 most watched Comedies?
+```{r}
+#filtering out only the comedies
+most_pop_comedies <- data %>%
+  filter(Genre == "Comedy")
+
+#first 10 rows: most watched = most popular because that is how their popularity is measured
+head(most_pop_comedies, n=10)
+```
+
+Observations:
+Based on the results, the top 10 most watched comedies are: "Crash Course In Romance", "Beef", "XO, Kitty", "	Doctor Cha", "You People", "Murder Mystery 2", "Never Have I Ever", "Your Place or Mine", "Chiquititas", and "Mr. Queen". Since almost all of the top 20 spots are taken up by tv shows, I find it surprising that around 1/3 of the top 10 comedies are movies and only 2/3 are tv shows. Compared to how many more tv shows are at the top compared to movies, this is pretty surprising. Lastly, it is really interesting that only 3 of the top 10 tv shows/movies premiered in a year other than 2023.
+
+
+
+### What are the Top 10 most watched Dramas?
+```{r}
+#different way of filtering out just the Top 10 of a certain genre
+data %>%
+  filter(Genre == "Drama") %>%
+  slice(1:12)
+```
+Note: The reason why I printed out the first 12 rows instead of first 10 rows is because I noticed that the 2021 Drama TV Show, "Ginny & Georgia", appeared twice for some reason with different watch times. This also happened with the the 2020 Drama TV Show, "Outer Banks".
+
+Observations:
+Based on the results, the top 10 most watched dramas are: "Ginny & Georgia", "Queen Charlotte: A Bridgerton Story", "La Reina del Sur", "Outer Banks", "Firefly Lane", "The Diplomat", "Perfil falso", "Sex/Life", "The Surrogacy", and "Emily in Paris". I find it surprising that only a few of the dramas premiered in 2023. This is very different compared to the comedies.
+
+### Which year(s) had the least amount of popular tv shows/movies?
+```{r}
+plot(x = data$Premiere, y = data$Watchtime,
+     xlab = "Year",
+     ylab = "Total Watchtime",
+     main = "Years That the Popular TV Shows/Movies Premiered In",
+     type = "p",
+     lty = 1, lwd = 1,
+     pch = 16,
+     cex = 1, cex.axis = 1, cex.lab = 1)
+
+
+```
+
+Based on this plot, it is clear that the years with the least amount of popular tv shows/movies are in the 1940's and maybe a couple in the 1950's. Because of this information, it is easier to narrow down exactly which years have the least by counting up all the tv shows/movies that premiered each year in the 1940's and 1950's.
+
+```{r}
+#counting how many popular TV Shows/Movies premiered each year in the 1940's
+year_1940 <- data %>%
+  filter(Premiere == "1940") %>%
+  nrow()
+
+year_1941 <- data %>%
+  filter(Premiere == "1941") %>%
+  nrow()
+
+year_1942 <- data %>%
+  filter(Premiere == "1942") %>%
+  nrow()
+
+year_1943 <- data %>%
+  filter(Premiere == "1943") %>%
+  nrow()
+
+year_1944 <- data %>%
+  filter(Premiere == "1944") %>%
+  nrow()
+
+year_1945 <- data %>%
+  filter(Premiere == "1945") %>%
+  nrow()
+
+year_1946 <- data %>%
+  filter(Premiere == "1946") %>%
+  nrow()
+
+year_1947 <- data %>%
+  filter(Premiere == "1947") %>%
+  nrow()
+
+year_1948 <- data %>%
+  filter(Premiere == "1948") %>%
+  nrow()
+
+year_1949 <- data %>%
+  filter(Premiere == "1949") %>%
+  nrow()
+
+```
+
+
+
+```{r}
+#counting how many popular TV Shows/Movies premiered each year in the 1950's and 1960
+year_1950 <- data %>%
+  filter(Premiere == "1950") %>%
+  nrow()
+
+year_1951 <- data %>%
+  filter(Premiere == "1951") %>%
+  nrow()
+
+year_1952 <- data %>%
+  filter(Premiere == "1952") %>%
+  nrow()
+
+year_1953 <- data %>%
+  filter(Premiere == "1953") %>%
+  nrow()
+
+year_1954 <- data %>%
+  filter(Premiere == "1954") %>%
+  nrow()
+
+year_1955 <- data %>%
+  filter(Premiere == "1955") %>%
+  nrow()
+
+year_1956 <- data %>%
+  filter(Premiere == "1956") %>%
+  nrow()
+
+year_1957 <- data %>%
+  filter(Premiere == "1957") %>%
+  nrow()
+
+year_1958 <- data %>%
+  filter(Premiere == "1958") %>%
+  nrow()
+
+year_1959 <- data %>%
+  filter(Premiere == "1959") %>%
+  nrow()
+
+```
+
+
+
+```{r}
+#making a Dataframe with the amount of movies that premiered each year from 1940-1959
+year <- c("1940", "1941", "1942", "1943", "1944", "1945", "1946", "1947", "1948", "1949",
+          "1950", "1951", "1952", "1953", "1954", "1955", "1956", "1957", "1958", "1959")
+amount_lowest <- c(year_1940, year_1941, year_1942, year_1943, year_1944, year_1945, year_1946, year_1947, year_1948, year_1949,
+            year_1950, year_1951, year_1952, year_1953, year_1954, year_1955, year_1956, year_1957, year_1958, year_1959)
+
+#creating Dataframe
+df_year_amount_1900s <- data.frame(year, amount_lowest)
+df_year_amount_1900s
+```
+
+Since 0 is the lowest amount, I'm going to look at which rows have 0's in them.
+```{r}
+#filtering out only the years that have 0's in them
+amount_0 <- df_year_amount_1900s %>%
+  filter(amount_lowest == "0")
+
+amount_0
+```
+
+There are multiple years that have the least amount of popular releases. The years are 1941, 1942, 1943, 1944, 1945, 1946, 1947, 1948, 1949, 1950, and 1959.
+
+
+### Which year(s) had the most amount of popular tv shows/movies?
+```{r}
+ggplot(data = data, aes(x = data$Premiere)) + geom_density()
+```
+
+Based on this plot, it is clear that the year(s) with the most amount of popular tv shows/movies is between 2017 and 2020. Because of this information, it is easier to narrow down exactly which years have the most by counting up all the tv shows/movies that premiered in 2017, 2018, 2019, and 2020.
+
+```{r}
+#counting how many popular TV Shows/Movies premiered each year from 2017-2020
+year_2017 <- data %>%
+  filter(Premiere == "2017") %>%
+  nrow()
+
+year_2018 <- data %>%
+  filter(Premiere == "2018") %>%
+  nrow()
+
+year_2019 <- data %>%
+  filter(Premiere == "2019") %>%
+  nrow()
+
+year_2020 <- data %>%
+  filter(Premiere == "2020") %>%
+  nrow()
+
+```
+
+
+```{r}
+#making a Dataframe with the amount of movies that premiered each year from 2017-2020
+year <- c("2017", "2018", "2019", "2020")
+amount_highest <- c(year_2017, year_2018, year_2019, year_2020)
+
+#creating Dataframe
+df_year_amount_2000s <- data.frame(year, amount_highest)
+df_year_amount_2000s
+```
+
+Finding the max amount.
+```{r}
+max(df_year_amount_2000s$amount_highest)
+```
+
+
+Since 1706 is the largest amount, I'm going to look at which row has 1706.
+```{r}
+#filtering out only the row with the biggest amount of popular tv shows/movies which in this case is 1706
+amount_1706 <- df_year_amount_2000s %>%
+  filter(amount_highest == "1706")
+
+amount_1706
+```
+
+Based on the results, the year that had the most amount of popular tv shows/movies is 2019.
+
+### Which genre is the most popular and which is the least popular for both tv shows and movies?
+```{r}
+#barplot
+ggplot(data = data, aes(x = Genre)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(angle = 45, hjust=1))
+```
+
+Based on this plot, "Comedy" is the most popular genre, and "News" is the least popular genre.
+
+### Which genre is the most popular and which is the least popular specifically for movies?
+
+```{r}
+#filtering out only the movies
+most_popular_movies <- data %>%
+  filter(Type == "Movie")
+```
+
+Making a barplot with just the data on the movies.
+
+```{r}
+#barplot
+ggplot(data = most_popular_movies, aes(x = Genre)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(angle = 45, hjust=1))
+```
+
+In this plot that contains only movies, "Comedy" is still the most popular genre. However, the least popular genre is "Reality Show". Interestingly, there is no "News" genre at all. It also makes sense that "Reality Show" is the least popular genre just because that genre is usually for tv shows and not movies.
+
+### Which genre is the most popular and which is the least popular specifically for tv shows?
+
+```{r}
+#filtering out only the movies
+most_popular_tvshows <- data %>%
+  filter(Type == "TV Show")
+```
+
+Making a barplot with just the data on the tv shows.
+
+```{r}
+#barplot
+ggplot(data = most_popular_tvshows, aes(x = Genre)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(angle = 45, hjust=1))
+```
+
+In this plot that contains only tv shows, "Animation" is the most popular genre. Although, it's hard to tell what the least popular genre is from this plot. So, I will count how many tv shows have the genres "Adventure", "Biography", "News", "War", and "Western". This will give an accurate answer as to which genre(s) is the least popular when it comes to tv shows.
+
+```{r}
+genre_adventure <- most_popular_tvshows %>%
+  filter(Genre == "Adventure") %>%
+  nrow()
+
+genre_biography <- most_popular_tvshows %>%
+  filter(Genre == "Biography") %>%
+  nrow()
+
+genre_news <- most_popular_tvshows %>%
+  filter(Genre == "News") %>%
+  nrow()
+
+genre_war <- most_popular_tvshows %>%
+  filter(Genre == "War") %>%
+  nrow()
+
+genre_western <- most_popular_tvshows %>%
+  filter(Genre == "Western") %>%
+  nrow()
+```
+
+
+```{r}
+#making a Dataframe with the amount of movies that have these genres
+genre <- c("Adventure", "Biography", "News", "War", "Western")
+amount_of_tvshows <- c(genre_adventure, genre_biography, genre_news, genre_war, genre_western)
+
+#creating Dataframe
+df_genre_amount_of_tvshows <- data.frame(genre, amount_of_tvshows)
+df_genre_amount_of_tvshows
+```
+
+Based on these results, the two least popular genres when it comes to tv shows are "Biography" and "News".
+
+
