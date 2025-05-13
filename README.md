@@ -25,3 +25,16 @@ STAT363 CLT and Monte Carlo Homework 1:
 -Plotted data in Base R.
 
 -Monte Carlo Integration: approximating pi using Monte Carlo integration.
+
+
+STAT363 Data Manipulation and Visualization Final Project (R):
+
+Note: This project is listed in my CV as "**Data Cleaning and Time Series Analysis**".
+
+-Analyzed COVID-19 vaccination rates and mortality data across U.S. states, focusing on temporal trends and inter-state variations.
+
+-Created time series visualizations to explore the correlation between vaccination rates and COVID-19 mortality trends.
+
+-Conducted descriptive statistics to compare pre- and post-vaccination mortality rates, assessing the impact of vaccination rollouts.
+
+-Extracted and analyzed state-level public health policies using text mining to evaluate their influence on COVID-19 outcomes.
