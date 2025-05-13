@@ -16,6 +16,8 @@ flixpatrol is the data used in the Most Watched Movies and TV Shows Personal Pro
 
 STAT363 CLT and Monte Carlo Homework 1:
 
+Note: This project is listed in my CV as "**Central Limit Theorem Demonstration and Monte Carlo Estimation of π**".
+
 -CLT: Simulated true populations.
 
 -Drew a sample from each population.
