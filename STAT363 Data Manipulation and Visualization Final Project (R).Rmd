@@ -1,0 +1,1132 @@
+---
+title: "STAT363 Data Manipulation and Visualization Final Project"
+author: "Kira Novitchkova-Burbank"
+date: 'Due: Thursday June 2/2022 by 11:59 pm'
+output: rmdformats::material
+subtitle: 'STAT 363'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+library(magrittr)
+library(dplyr)
+library(readr)
+library(tidyr)
+library(lubridate)
+library(pander)
+library(stringr)
+library(tidyverse)
+library(scales)
+library(ggthemes)
+```
+
+# Logistics
+
+- Make a copy of this template to write out your solution, and rename it before  knitting it the first time as file as `HW03.Rmd`.
+- Inside this .Rmd file do not include any personal identifier (such as your name, Odin ID, etc.). 
+- Knit your Rmd file as html and upload both the Rmd and html files with your solution to Canvas in `Assignments > Homework3` before Thursday June 2nd at 11:59 pm.
+
+
+# Objectives for this week's homework
+
+1. Upload `csv` files into R
+
+2. Become proficient at manipulating, filtering, summarizing, cleaning, recoding, combining, etc. data in R using `dplyr`, `tidyr`, and `purr`
+
+3. Use exploratory data analysis tools, such as summary statistics tables and figures to determine if a hypothesis has any merit
+
+4. Create informative summary tables and figures
+
+5. Use tools to extract information from character strings
+
+
+# Background and Data
+
+Although by this point some of you may be avoiding the information overload surrounding Covid-19, understanding what has happened up to now by direct exploration of the latest data directly from the source, and extracting one's own conclusions can be empowering. 
+
+At this point of the term you have an R toolbox broad enough to tackle the massive amount of data found in Johns Hopkins COVID-19 repository [(click here)](https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data).  These data has been updated daily since the COVID-19 pandemic started. I also included links to other supplementary data sets to **potentially** explore the effectiveness of measures taken throughout the pandemic, including-mask use and vaccination. The datasets included are: 
+
+1. **covid.ts.cases**: daily time series for the confirmed number of COVID-19 cases at the county level for the US (file description [here](https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/README.md)).
+
+2.  **covid.ts.deaths**: daily time series for the confirmed number of COVID-19 deaths at the county level for the US (file description [here](https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/README.md)).
+
+3. **covid.usa.daily**: COVID-19 USA daily state reports with the number of confirmed cases between April 14th and May 7th (file description [here](https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data#daily-reports-csse_covid_19_daily_reports)).
+
+
+4. **Vaccination data**: state level COVID-19 daily vaccination numbers time series data from the Johns Hopkins University repository (file description [here](https://github.com/govex/COVID-19/blob/master/data_tables/vaccine_data/us_data/readme.md), )
+
+5. **State policy data**: data files (one file by state) about dates and description of policies going into/out of effect.  To load data for a particular state go to [this link](https://github.com/govex/COVID-19/tree/govex_data/data_tables/policy_data/table_data/Current), find the name 
+of the state file you want to work with.  For example if you want to load data from California, use
+```{r echo=T, eval=F}
+policytrackerCA <- read_csv("https://raw.githubusercontent.com/govex/COVID-19/govex_data/data_tables/policy_data/table_data/Current/California_policy.csv")
+```
+To change the state you just need to replace the name of the state in the file name (e.g., `California_policy.csv` by `Oregon_policy.csv`) at the end of the link above for the one you want to work with.
+
+Here is the data:
+
+```{r load_data}
+#confirmed COVID-19 time series cases US (trimmed to include from 01/01/2021 to 05/23/2022)
+covid.usa.ts.confirmed <- read_csv('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv') %>%  select(UID:Combined_Key,`1/1/21`:`5/23/22`)
+
+#Confirmed COVID-19 time series deaths US (trimmed to include from 01/01/2021 to 05/23/2022) these data include the population by county
+covid.usa.ts.deaths <- read_csv('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv') %>%
+  select(UID:Population,`1/1/21`:`5/23/22`)
+
+#Daily data summary by state for 05-23-20222
+covid.usa.daily <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports_us/05-23-2022.csv") 
+
+#US vaccinated people data
+vacc.people <- read_csv("https://raw.githubusercontent.com/govex/COVID-19/master/data_tables/vaccine_data/us_data/time_series/people_vaccinated_us_timeline.csv")
+
+
+#uncomment to load policy tracker data for a state
+#data on policy adoption by state (there is one file by state).  If loading data in CA, use:
+policytrackerCA <- read_csv("https://raw.githubusercontent.com/govex/COVID-19/govex_data/data_tables/policy_data/table_data/Current/California_policy.csv")
+#If loading data in OR, use:
+policytrackerOR <- read_csv("https://raw.githubusercontent.com/govex/COVID-19/govex_data/data_tables/policy_data/table_data/Current/Oregon_policy.csv")
+
+```
+
+The goal is for you to generate insights about the COVID-19 pandemic by states in the US and attempt to identify any trends in the data that inform about the efficacy of particular measures taken.
+
+# Your Task
+
+## Part 1: Wrangling the COVID-19 time series data
+
+1. Identify and list the *primary and foreign keys* for each data frame.
+
+##covid.usa.ts.confirmed
+
+Primary Keys:
+
+UID
+FIPS
+Admin2
+Lat
+Long_
+Combined_Key
+
+Foreign Keys:
+
+UID
+FIPS
+Admin2
+Lat
+Long_
+Combined_Key
+
+##covid.usa.ts.deaths
+
+Primary Keys:
+
+UID
+FIPS
+Admin2
+Lat
+Long_
+Combined_Key
+
+Foreign Keys:
+
+UID
+FIPS
+Admin2
+Lat
+Long_
+Combined_Key
+
+##vacc.people
+
+Primary Keys:
+
+Province_State
+Date
+
+Foreign Keys:
+
+Province_State
+
+##covid.usa.daily
+
+Primary Keys:
+
+Province_State
+UID
+FIPS
+Lat
+Long_
+
+Foreign Keys:
+
+Province_State
+UID
+
+
+2. Using the time series data sets `covid.usa.ts.confirmed` and `covid.use.ts.deaths`, which are both at the county level and are in wide format, reshape them into long format (using the function `pivot_longer`) to generate a single new data frame with the daily time series **BY STATE** including both number of confirmed cases and deaths, so that you have one row for each combination of state and date.  Call this new data frame `covid.usa.states.ts`. 
+
+
+```{r}
+
+#turning covid.usa.ts.confirmed into pivot_longer format
+confirmed_cases_long <- covid.usa.ts.confirmed %>%
+  pivot_longer(
+    contains("/"),
+    names_to = "date_col",
+    values_to = "cases_confirmed"
+  )
+
+covid_usa_confirmed_long_df <- confirmed_cases_long %>%
+  mutate(date_col = mdy(date_col)) #making datetime column
+
+#actual size: 1,697,736x14
+head(covid_usa_confirmed_long_df)
+
+```
+
+```{r}
+#turning covid.usa.ts.deaths into pivot_longer format
+deaths_long <- covid.usa.ts.deaths %>%
+  pivot_longer(
+    contains("/"),
+    names_to = "date_col",
+    values_to = "deaths"
+  )
+
+covid_usa_deaths_long_df <- deaths_long %>%
+  mutate(date_col = mdy(date_col)) #making datetime column
+
+#actual size: 1,697,736x14
+head(covid_usa_deaths_long_df)
+
+```
+
+```{r}
+#using full_join: covid_usa_confirmed_long_df and covid_usa_deaths_long_df
+covid.usa.counties.ts <- full_join(x = covid_usa_confirmed_long_df, y = covid_usa_deaths_long_df)
+
+
+#changing from by county to by state
+covid.usa.states.ts.no.distinct <- covid.usa.counties.ts %>%
+  group_by(Province_State, date_col) %>%
+  summarise(
+    date_col,
+    Province_State,
+    total_cases = sum(cases_confirmed),
+    total_deaths = sum(deaths)
+  )
+
+covid.usa.states.ts <- covid.usa.states.ts.no.distinct %>% distinct()
+#actual size: 29,464x4
+head(covid.usa.states.ts)
+```
+
+**Note**: after reshaping your file into long format, your new `date` column (or however you decide to call it) needs to be converted into a `Date-Time` type variable. For example, if your variable is called `my.date.variable`, you can make this conversion using `lubridate::mdy(my.date.variable)`.
+
+3. Append to `covid.usa.states.ts` (created in previous problem) all of the information from matching rows in `vacc.people` (without repeating columns with the same info in the two data sets). 
+
+```{r}
+
+#changing Date to date_col so the date columns align properly
+renamed.vacc.people <- rename(vacc.people, date_col = Date)
+
+
+#using full_join to join renamed.vacc.people and covid.usa.states.ts
+#note: the data for cases and deaths ends on May 23rd and the data for vaccines ends on June 2nd
+joined_vacc_covid <- full_join(x = renamed.vacc.people, y = covid.usa.states.ts)
+
+
+#filtered for data to start at first covid cases and deaths
+covid.usa.states.vacc.joined.ts <- joined_vacc_covid %>% filter(ymd(20210101)<=date_col)
+#actual size: 32,386x11
+head(covid.usa.states.vacc.joined.ts)
+
+
+```
+
+
+## Part 2: Let's use the data
+
+1. Using `covid.usa.daily` select *3 highly impacted states*, *3 mildly impacted states* by COVID-19, where by 'highly impacted' I mean the states with high numbers of confirmed cases.  
+
+###3 Highly Impacted States: California, Florida, and New York
+
+```{r}
+#selecting 3 highly impacted states: California, Florida, and New York
+
+covid.usa.daily %>%
+  filter(Province_State == "California" | Province_State == "Florida" | Province_State == "New York") %>%
+  select(Province_State, Confirmed, Deaths)
+
+```
+
+###3 Midly Impacted States: Hawaii, Oregon, and Rhode Island
+
+```{r}
+#selecting 3 mildly impacted states: Hawaii, Oregon, and Rhode Island
+
+covid.usa.daily %>%
+  filter(Province_State == "Hawaii" | Province_State == "Oregon" | Province_State == "Rhode Island") %>%
+  select(Province_State, Confirmed, Deaths)
+
+
+```
+
+3. Create a visualization of the evolution of confirmed cases, deaths, and people vaccinated for each of the 6 states identified as *highly* and *mildly* impacted (use the `covid.usa.states.ts` data.frame to create the figure).  
+#3 Highly Impacted States: California, Florida, and New York
+
+##California
+
+###Covid Cases Plot:
+
+```{r}
+#filtering only data for California from the covid.usa.states.vacc.joined.ts data set
+covid.california <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "California")
+#actual size: 518x11
+head(covid.california)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total covid cases from January 1st, 2021 to May 23rd, 2022 for California
+covid.california.cases.plot <- ggplot(data = covid.california, aes(x = date_col, y = total_cases)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Cases from January 1st, 2021 to May 23rd, 2022 in CA") +
+  xlab("Date")+
+  ylab("COVID Cases") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 10000000, 1500000)) +
+  theme_bw()
+covid.california.cases.plot
+```
+
+###Covid Deaths Plot:
+
+```{r}
+#filtering only data for California from the covid.usa.states.vacc.joined.ts data set
+covid.california <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "California")
+#actual size: 518x11
+head(covid.california)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total covid deaths from January 1st, 2021 to May 23rd, 2022 for California
+covid.california.deaths.plot <- ggplot(data = covid.california, aes(x = date_col, y = total_deaths)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Deaths from January 1st, 2021 to May 23rd, 2022 in CA") +
+  xlab("Date")+
+  ylab("COVID Deaths") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 92000, 15000)) +
+  theme_bw()
+covid.california.deaths.plot
+```
+
+###Covid Vaccinations Plot:
+
+```{r}
+#filtering only data for California from the covid.usa.states.vacc.joined.ts data set
+covid.california <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "California")
+#actual size: 518x11
+head(covid.california)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total people vaccinated from Feburary 3rd, 2021 to June 2nd, 2022 in California
+covid.california.vacc.plot <- ggplot(data = covid.california, aes(x = date_col, y = People_Fully_Vaccinated)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Peop. Fully Vaccinated from Feb 3rd, 2021 to Jun 2nd, 2022 in CA") +
+  xlab("Date")+
+  ylab("Peop. Vacc. for COVID") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 30000000, 7500000)) +
+  theme_bw()
+covid.california.vacc.plot
+```
+
+###All Three Plots Together:
+
+```{r}
+#arranging plots that show cases, deaths, and vaccinations next to each other for Hawaii
+require(gridExtra)
+grid.arrange(covid.california.cases.plot, covid.california.deaths.plot, covid.california.vacc.plot, heights=c(1,1,1))
+```
+
+##Florida
+
+###Covid Cases Plot:
+
+```{r}
+#filtering only data for Florida from the covid.usa.states.vacc.joined.ts data set
+covid.florida <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "Florida")
+#actual size: 518x11
+head(covid.florida)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total covid cases from January 1st, 2021 to May 23rd, 2022 for Florida
+covid.florida.cases.plot <- ggplot(data = covid.florida, aes(x = date_col, y = total_cases)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Cases from January 1st, 2021 to May 23rd, 2022 in Florida") +
+  xlab("Date")+
+  ylab("COVID Cases") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 6500000, 1000000)) +
+  theme_bw()
+covid.florida.cases.plot
+```
+###Covid Deaths Plot:
+
+```{r}
+#filtering only data for Florida from the covid.usa.states.vacc.joined.ts data set
+covid.florida <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "Florida")
+#actual size: 518x11
+head(covid.florida)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total covid deaths from January 1st, 2021 to May 23rd, 2022 for Florida
+covid.florida.deaths.plot <- ggplot(data = covid.florida, aes(x = date_col, y = total_deaths)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Deaths from January 1st, 2021 to May 23rd, 2022 in Florida") +
+  xlab("Date")+
+  ylab("COVID Deaths") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 75000, 15000)) +
+  theme_bw()
+covid.florida.deaths.plot
+```
+
+###Covid Vaccinations Plot:
+
+```{r}
+#filtering only data for Florida from the covid.usa.states.vacc.joined.ts data set
+covid.florida <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "Florida")
+#actual size: 518x11
+head(covid.florida)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total people vaccinated from Feburary 3rd, 2021 to June 2nd, 2022 in Florida
+covid.florida.vacc.plot <- ggplot(data = covid.florida, aes(x = date_col, y = People_Fully_Vaccinated)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Peop.Fully Vaccinated from Feb 3rd, 2021 to Jun 2nd, 2022 in Florida") +
+  xlab("Date")+
+  ylab("Peop. Vacc. for COVID") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 15000000, 2800000)) +
+  theme_bw()
+covid.florida.vacc.plot
+```
+
+
+###All Three Plots Together:
+
+```{r}
+#arranging plots that show cases, deaths, and vaccinations next to each other for Hawaii
+require(gridExtra)
+grid.arrange(covid.florida.cases.plot, covid.florida.deaths.plot, covid.florida.vacc.plot, heights=c(1,1,1))
+```
+
+##New York
+
+###Covid Cases Plot:
+
+```{r}
+#filtering only data for New York from the covid.usa.states.vacc.joined.ts data set
+covid.new.york <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "New York")
+#actual size: 518x11
+head(covid.new.york)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total covid cases from January 1st, 2021 to May 23rd, 2022 for New York
+covid.new.york.cases.plot <- ggplot(data = covid.florida, aes(x = date_col, y = total_cases)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Cases from January 1st, 2021 to May 23rd, 2022 in NY") +
+  xlab("Date")+
+  ylab("COVID Cases") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 5400000, 1000000)) +
+  theme_bw()
+covid.new.york.cases.plot
+```
+
+###Covid Deaths Plot:
+
+```{r}
+#filtering only data for New York from the covid.usa.states.vacc.joined.ts data set
+covid.new.york <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "New York")
+#actual size: 518x11
+head(covid.new.york)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total covid deaths from January 1st, 2021 to May 23rd, 2022 for New York
+covid.new.york.deaths.plot <- ggplot(data = covid.new.york, aes(x = date_col, y = total_deaths)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Deaths from January 1st, 2021 to May 23rd, 2022 in NY") +
+  xlab("Date")+
+  ylab("COVID Deaths") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 70000, 10000)) +
+  theme_bw()
+covid.new.york.deaths.plot
+```
+
+###Covid Vaccinations Plot:
+
+```{r}
+#filtering only data for New York from the covid.usa.states.vacc.joined.ts data set
+covid.new.york <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "New York")
+#actual size: 518x11
+head(covid.new.york)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total people vaccinated from Feburary 3rd, 2021 to June 2nd, 2022 in New York
+covid.new.york.vacc.plot <- ggplot(data = covid.new.york, aes(x = date_col, y = People_Fully_Vaccinated)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Peop. Fully Vaccinated from Feb 3rd, 2021 to Jun 2nd, 2022 in NY") +
+  xlab("Date")+
+  ylab("Peop. Vacc. for COVID") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 16000000, 3000000)) +
+  theme_bw()
+covid.new.york.vacc.plot
+```
+
+###All Three Plots Together:
+
+```{r}
+#arranging plots that show cases, deaths, and vaccinations next to each other for Hawaii
+require(gridExtra)
+grid.arrange(covid.new.york.cases.plot, covid.new.york.deaths.plot, covid.new.york.vacc.plot, heights=c(1,1,1))
+```
+
+#3 Midly Impacted States: Hawaii, Oregon, and Rhode Island
+
+##Hawaii
+
+###Covid Cases Plot:
+
+```{r}
+#filtering only data for Hawaii from the covid.usa.states.vacc.joined.ts data set
+covid.hawaii <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "Hawaii")
+#actual size: 518x11
+head(covid.hawaii)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total covid cases from January 1st, 2021 to May 23rd, 2022 for Hawaii
+covid.hawaii.cases.plot <- ggplot(data = covid.hawaii, aes(x = date_col, y = total_cases)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Cases from January 1st, 2021 to May 23rd, 2022 in Hawaii") +
+  xlab("Date")+
+  ylab("COVID Cases") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 300000, 75000)) +
+  theme_bw()
+covid.hawaii.cases.plot
+```
+
+###Covid Deaths Plot:
+
+```{r}
+#filtering only data for Hawaii from the covid.usa.states.vacc.joined.ts data set
+covid.hawaii <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "Hawaii")
+#actual size: 518x11
+head(covid.hawaii)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total covid deaths from January 1st, 2021 to May 23rd, 2022 for Hawaii
+covid.hawaii.deaths.plot <- ggplot(data = covid.hawaii, aes(x = date_col, y = total_deaths)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Deaths from January 1st, 2021 to May 23rd, 2022 in Hawaii") +
+  xlab("Date")+
+  ylab("COVID Deaths") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 2000, 300)) +
+  theme_bw()
+covid.hawaii.deaths.plot
+```
+
+###Covid Vaccinations Plot:
+
+```{r}
+#filtering only data for Hawaii from the covid.usa.states.vacc.joined.ts data set
+covid.hawaii <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "Hawaii")
+#actual size: 518x11
+head(covid.hawaii)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total people vaccinated from Feburary 3rd, 2021 to June 2nd, 2022 in Hawaii
+covid.hawaii.vacc.plot <- ggplot(data = covid.hawaii, aes(x = date_col, y = People_Fully_Vaccinated)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Peop. Fully Vaccinated from Feb 3rd, 2021 to Jun 2nd, 2022 in Hawaii") +
+  xlab("Date")+
+  ylab("Peop. Vacc. for COVID") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 1200000, 190000)) +
+  theme_bw()
+covid.hawaii.vacc.plot
+```
+
+###All Three Plots Together:
+
+```{r}
+#arranging plots that show cases, deaths, and vaccinations next to each other for Hawaii
+require(gridExtra)
+grid.arrange(covid.hawaii.cases.plot, covid.hawaii.deaths.plot, covid.hawaii.vacc.plot, heights=c(1,1,1))
+```
+##Oregon
+
+###Covid Cases Plot:
+
+```{r}
+#filtering only data for Oregon from the covid.usa.states.vacc.joined.ts data set
+covid.oregon <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "Oregon")
+#actual size: 518x11
+head(covid.oregon)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total covid cases from January 1st, 2021 to May 23rd, 2022 for Oregon
+covid.oregon.cases.plot <- ggplot(data = covid.oregon, aes(x = date_col, y = total_cases)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Cases from January 1st, 2021 to May 23rd, 2022 in Oregon") +
+  xlab("Date")+
+  ylab("COVID Cases") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 800000, 150000)) +
+  theme_bw()
+covid.oregon.cases.plot 
+```
+
+###Covid Deaths Plot:
+
+```{r}
+#filtering only data for Oregon from the covid.usa.states.vacc.joined.ts data set
+covid.oregon <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "Oregon")
+#actual size: 518x11
+head(covid.oregon)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total covid deaths from January 1st, 2021 to May 23rd, 2022 for Oregon
+covid.oregon.deaths.plot <- ggplot(data = covid.oregon, aes(x = date_col, y = total_deaths)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Deaths from January 1st, 2021 to May 23rd, 2022 in Oregon") +
+  xlab("Date")+
+  ylab("COVID Deaths") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 8000, 1500)) +
+  theme_bw()
+covid.oregon.deaths.plot
+```
+
+###Covid Vaccinations Plot:
+
+```{r}
+#filtering only data for Oregon from the covid.usa.states.vacc.joined.ts data set
+covid.oregon <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "Oregon")
+#actual size: 518x11
+head(covid.oregon)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total people vaccinated from Feburary 3rd, 2021 to June 2nd, 2022 in Oregon
+covid.oregon.vacc.plot <- ggplot(data = covid.oregon, aes(x = date_col, y = People_Fully_Vaccinated)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Peop. Fully Vaccinated from Feb 3rd, 2021 to Jun 2nd, 2022 in Oregon") +
+  xlab("Date")+
+  ylab("Peop. Vacc. for COVID") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 3000000, 750000)) +
+  theme_bw()
+covid.oregon.vacc.plot
+```
+
+###All Three Plots Together:
+
+```{r}
+#arranging plots that show cases, deaths, and vaccinations next to each other for Oregon
+require(gridExtra)
+grid.arrange(covid.oregon.cases.plot, covid.oregon.deaths.plot, covid.oregon.vacc.plot, heights=c(1,1,1))
+```
+
+##Rhode Island
+
+###Covid Cases Plot:
+
+```{r}
+#filtering only data for Rhode Island from the covid.usa.states.vacc.joined.ts data set
+covid.rhode.island <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "Rhode Island")
+#actual size: 518x11
+head(covid.rhode.island)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total covid cases from January 1st, 2021 to May 23rd, 2022 for Rhode Island
+covid.rhode.island.cases.plot <- ggplot(data = covid.hawaii, aes(x = date_col, y = total_cases)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Cases from January 1st, 2021 to May 23rd, 2022 in RI") +
+  xlab("Date")+
+  ylab("COVID Cases") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 400000, 50000)) +
+  theme_bw()
+covid.rhode.island.cases.plot
+```
+
+###Covid Deaths Plot:
+
+```{r}
+#filtering only data for Rhode Island from the covid.usa.states.vacc.joined.ts data set
+covid.rhode.island <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "Rhode Island")
+#actual size: 518x11
+head(covid.rhode.island)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total covid deaths from January 1st, 2021 to May 23rd, 2022 for Rhode Island
+covid.rhode.island.deaths.plot <- ggplot(data = covid.rhode.island, aes(x = date_col, y = total_deaths)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Deaths from January 1st, 2021 to May 23rd, 2022 in RI") +
+  xlab("Date")+
+  ylab("COVID Deaths") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 4000, 500)) +
+  theme_bw()
+covid.rhode.island.deaths.plot
+```
+
+###Covid Vaccinations Plot:
+
+```{r}
+#filtering only data for Rhode Island from the covid.usa.states.vacc.joined.ts data set
+covid.rhode.island <- covid.usa.states.vacc.joined.ts %>%
+  filter(Province_State == "Rhode Island")
+#actual size: 518x11
+head(covid.rhode.island)
+
+#changing from scientific notation to regular numbers
+options(scipen=10000)
+
+#plotting total people vaccinated from Feburary 3rd, 2021 to June 2nd, 2022 in Rhode Island
+covid.rhode.island.vacc.plot <- ggplot(data = covid.rhode.island, aes(x = date_col, y = People_Fully_Vaccinated)) +
+  geom_point(na.rm=TRUE) +
+  ggtitle("Peop. Fully Vaccinated from Feb 3rd, 2021 to Jun 2nd, 2022 in Rhode Island") +
+  xlab("Date")+
+  ylab("Peop. Vacc. for COVID") +
+  (scale_x_date(breaks = date_breaks("2 months"),
+                labels = date_format("%b %y"))) +
+  scale_y_continuous(breaks = seq(0, 900000, 200000)) +
+  theme_bw()
+covid.rhode.island.vacc.plot
+```
+
+###All Three Plots Together:
+
+```{r}
+#arranging plots that show cases, deaths, and vaccinations next to each other for Rhode Island
+require(gridExtra)
+grid.arrange(covid.rhode.island.cases.plot, covid.rhode.island.deaths.plot, covid.rhode.island.vacc.plot, heights=c(1,1,1))
+```
+
+4. Do you see any interesting change in the trajectories of the corresponding time series for the number of cases and deaths taking place with vaccinations?  Produce **meaningful** summaries that enable you to quantify this change (e.g., average number of new cases in windows of 90 days before vs 90 days after vaccination started). One or two summary measures is good.  Make either a table or a figure to display your findings and **comment on them**.
+
+My Observation: There is an interesting change in the trajectory of the deaths data when vaccines are introduced. The deaths don't go up as fast when more people get vaccinated.
+
+My meaningful summary: Finding average number of new deaths in January, February, and March 2021 (beginning affect of vaccines) vs April, May, and June 2021 (a little bigger affect of vaccines) vs July, August, and September 2021 (much bigger affect of vaccines).
+
+```{r}
+#Finding the average number of new deaths in January, February, and March 2021 (beginning affect of vaccines) vs April, May, and June 2021 (bigger affect of vaccines) vs July, August, and September 2021 (much bigger affect of vaccines).
+
+#filtering California to include only deaths and people fully vaccinated for Jan, Feb, and Mar 2021
+covid.california.JFM <- covid.california %>%
+  filter(ymd(20210101) <= date_col & date_col <= ymd(20210331)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering Florida to include only deaths and people fully vaccinated for Jan, Feb, and Mar 2021
+covid.florida.JFM <- covid.florida %>%
+  filter(ymd(20210101) <= date_col & date_col <= ymd(20210331)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering New York to include only deaths and people fully vaccinated for Jan, Feb, and Mar 2021
+covid.new.york.JFM <- covid.new.york %>%
+  filter(ymd(20210101) <= date_col & date_col <= ymd(20210331)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering Hawaii to include only deaths and people fully vaccinated for Jan, Feb, and Mar 2021
+covid.hawaii.JFM <- covid.hawaii %>%
+  filter(ymd(20210101) <= date_col & date_col <= ymd(20210331)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering Oregon to include only deaths and people fully vaccinated for Jan, Feb, and Mar 2021
+covid.oregon.JFM <- covid.oregon %>%
+  filter(ymd(20210101) <= date_col & date_col <= ymd(20210331)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering Rhode Island to include only deaths and people fully vaccinated for Jan, Feb, and Mar 2021
+covid.rhode.island.JFM <- covid.rhode.island %>%
+  filter(ymd(20210101) <= date_col & date_col <= ymd(20210331)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#finding means of deaths and people fully vaccinated for Jan, Feb, and Mar 2021
+
+mean.covid.california.deaths.JFM <- mean(covid.california.JFM$total_deaths, na.rm = TRUE)
+mean.covid.california.vacc.JFM <- mean(covid.california.JFM$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.florida.deaths.JFM <- mean(covid.florida.JFM$total_deaths, na.rm = TRUE)
+mean.covid.florida.vacc.JFM <- mean(covid.florida.JFM$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.new.york.deaths.JFM <- mean(covid.new.york.JFM$total_deaths, na.rm = TRUE)
+mean.covid.new.york.vacc.JFM <- mean(covid.new.york.JFM$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.hawaii.deaths.JFM <- mean(covid.hawaii.JFM$total_deaths, na.rm = TRUE)
+mean.covid.hawaii.vacc.JFM <- mean(covid.hawaii.JFM$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.oregon.deaths.JFM <- mean(covid.oregon.JFM$total_deaths, na.rm = TRUE)
+mean.covid.oregon.vacc.JFM <- mean(covid.oregon.JFM$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.rhode.island.deaths.JFM <- mean(covid.rhode.island.JFM$total_deaths, na.rm = TRUE)
+mean.covid.rhode.island.vacc.JFM <- mean(covid.rhode.island.JFM$People_Fully_Vaccinated, na.rm = TRUE)
+
+
+#creating data frame
+State.Deaths_Mean.JFM <- data.frame( State = c('California', 'Florida', 'New York', 'Hawaii', 'Oregon', 'Rhode Island'),
+                  Deaths_Mean_Jan_Feb_Mar = c(mean.covid.california.deaths.JFM,
+                                              mean.covid.florida.deaths.JFM,
+                                              mean.covid.new.york.deaths.JFM,
+                                              mean.covid.hawaii.deaths.JFM,
+                                              mean.covid.oregon.deaths.JFM,
+                                              mean.covid.rhode.island.deaths.JFM),
+                  Vaccines_Mean_Jan_Feb_Mar = c(mean.covid.california.vacc.JFM,
+                                                mean.covid.florida.vacc.JFM,
+                                                mean.covid.new.york.vacc.JFM,
+                                                mean.covid.hawaii.vacc.JFM,
+                                                mean.covid.oregon.vacc.JFM,
+                                                mean.covid.rhode.island.vacc.JFM)
+)
+State.Deaths_Mean.JFM
+
+
+
+
+```
+```{r}
+#Finding the average number of new deaths in January, February, and March 2021 (beginning affect of vaccines) vs April, May, and June 2021 (bigger affect of vaccines) vs July, August, and September 2021 (much bigger affect of vaccines).
+
+#filtering California to include only deaths and people fully vaccinated for Apr, May, and Jun 2021
+covid.california.AMJ <- covid.california %>%
+  filter(ymd(20210401) <= date_col & date_col <= ymd(20210630)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering Florida to include only deaths and people fully vaccinated for Apr, May, and Jun 2021
+covid.florida.AMJ <- covid.florida %>%
+  filter(ymd(20210401) <= date_col & date_col <= ymd(20210630)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering New York to include only deaths and people fully vaccinated for Apr, May, and Jun 2021
+covid.new.york.AMJ <- covid.new.york %>%
+  filter(ymd(20210401) <= date_col & date_col <= ymd(20210630)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering Hawaii to include only deaths and people fully vaccinated for Apr, May, and Jun 2021
+covid.hawaii.AMJ <- covid.hawaii %>%
+  filter(ymd(20210401) <= date_col & date_col <= ymd(20210630)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering Oregon to include only deaths and people fully vaccinated for Apr, May, and Jun 2021
+covid.oregon.AMJ <- covid.oregon %>%
+  filter(ymd(20210401) <= date_col & date_col <= ymd(20210630)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering Rhode Island to include only deaths and people fully vaccinated for Apr, May, and Jun 2021
+covid.rhode.island.AMJ <- covid.rhode.island %>%
+  filter(ymd(20210401) <= date_col & date_col <= ymd(20210630)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#finding means of deaths and people fully vaccinated for Apr, May, and Jun 2021
+
+mean.covid.california.deaths.AMJ <- mean(covid.california.AMJ$total_deaths, na.rm = TRUE)
+mean.covid.california.vacc.AMJ <- mean(covid.california.AMJ$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.florida.deaths.AMJ <- mean(covid.florida.AMJ$total_deaths, na.rm = TRUE)
+mean.covid.florida.vacc.AMJ <- mean(covid.florida.AMJ$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.new.york.deaths.AMJ <- mean(covid.new.york.AMJ$total_deaths, na.rm = TRUE)
+mean.covid.new.york.vacc.AMJ <- mean(covid.new.york.AMJ$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.hawaii.deaths.AMJ <- mean(covid.hawaii.AMJ$total_deaths, na.rm = TRUE)
+mean.covid.hawaii.vacc.AMJ <- mean(covid.hawaii.AMJ$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.oregon.deaths.AMJ <- mean(covid.oregon.AMJ$total_deaths, na.rm = TRUE)
+mean.covid.oregon.vacc.AMJ <- mean(covid.oregon.AMJ$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.rhode.island.deaths.AMJ <- mean(covid.rhode.island.AMJ$total_deaths, na.rm = TRUE)
+mean.covid.rhode.island.vacc.AMJ <- mean(covid.rhode.island.AMJ$People_Fully_Vaccinated, na.rm = TRUE)
+
+
+#creating data frame
+State.Deaths_Mean.AMJ <- data.frame( State = c('California', 'Florida', 'New York', 'Hawaii', 'Oregon', 'Rhode Island'),
+                  Deaths_Mean_Apr_May_Jun = c(mean.covid.california.deaths.AMJ,
+                                              mean.covid.florida.deaths.AMJ,
+                                              mean.covid.new.york.deaths.AMJ,
+                                              mean.covid.hawaii.deaths.AMJ,
+                                              mean.covid.oregon.deaths.AMJ,
+                                              mean.covid.rhode.island.deaths.AMJ),
+                  Vaccines_Mean_Apr_May_Jun = c(mean.covid.california.vacc.AMJ,
+                                                mean.covid.florida.vacc.AMJ,
+                                                mean.covid.new.york.vacc.AMJ,
+                                                mean.covid.hawaii.vacc.AMJ,
+                                                mean.covid.oregon.vacc.AMJ,
+                                                mean.covid.rhode.island.vacc.AMJ)
+)
+State.Deaths_Mean.AMJ
+
+```
+
+```{r}
+#Finding the average number of new deaths in January, February, and March 2021 (beginning affect of vaccines) vs April, May, and June 2021 (bigger affect of vaccines) vs July, August, and September 2021 (much bigger affect of vaccines).
+
+#filtering California to include only deaths and people fully vaccinated for Jul, Aug, and Sep 2021
+covid.california.JAS <- covid.california %>%
+  filter(ymd(20210701) <= date_col & date_col <= ymd(20210930)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering Florida to include only deaths and people fully vaccinated for Jul, Aug, and Sep 2021
+covid.florida.JAS <- covid.florida %>%
+  filter(ymd(20210701) <= date_col & date_col <= ymd(20210930)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering New York to include only deaths and people fully vaccinated for Jul, Aug, and Sep 2021
+covid.new.york.JAS <- covid.new.york %>%
+  filter(ymd(20210701) <= date_col & date_col <= ymd(20210930)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering Hawaii to include only deaths and people fully vaccinated for Jul, Aug, and Sep 2021
+covid.hawaii.JAS <- covid.hawaii %>%
+  filter(ymd(20210701) <= date_col & date_col <= ymd(20210930)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering Oregon to include only deaths and people fully vaccinated for Jul, Aug, and Sep 2021
+covid.oregon.JAS <- covid.oregon %>%
+  filter(ymd(20210701) <= date_col & date_col <= ymd(20210930)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#filtering Rhode Island to include only deaths and people fully vaccinated for Jul, Aug, and Sep 2021
+covid.rhode.island.JAS <- covid.rhode.island %>%
+  filter(ymd(20210701) <= date_col & date_col <= ymd(20210930)) %>%
+  select(Province_State, date_col, total_deaths, People_Fully_Vaccinated)
+
+
+#finding means of deaths and people fully vaccinated for Jul, Aug, and Sep 2021
+
+mean.covid.california.deaths.JAS <- mean(covid.california.JAS$total_deaths, na.rm = TRUE)
+mean.covid.california.vacc.JAS <- mean(covid.california.JAS$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.florida.deaths.JAS <- mean(covid.florida.JAS$total_deaths, na.rm = TRUE)
+mean.covid.florida.vacc.JAS <- mean(covid.florida.JAS$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.new.york.deaths.JAS <- mean(covid.new.york.JAS$total_deaths, na.rm = TRUE)
+mean.covid.new.york.vacc.JAS <- mean(covid.new.york.JAS$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.hawaii.deaths.JAS <- mean(covid.hawaii.JAS$total_deaths, na.rm = TRUE)
+mean.covid.hawaii.vacc.JAS <- mean(covid.hawaii.JAS$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.oregon.deaths.JAS <- mean(covid.oregon.JAS$total_deaths, na.rm = TRUE)
+mean.covid.oregon.vacc.JAS <- mean(covid.oregon.JAS$People_Fully_Vaccinated, na.rm = TRUE)
+
+mean.covid.rhode.island.deaths.JAS <- mean(covid.rhode.island.JAS$total_deaths, na.rm = TRUE)
+mean.covid.rhode.island.vacc.JAS <- mean(covid.rhode.island.JAS$People_Fully_Vaccinated, na.rm = TRUE)
+
+
+#creating data frame
+State.Deaths_Mean.JAS <- data.frame( State = c('California', 'Florida', 'New York', 'Hawaii', 'Oregon', 'Rhode Island'),
+                  Deaths_Mean_Jul_Aug_Sep = c(mean.covid.california.deaths.JAS,
+                                              mean.covid.florida.deaths.JAS,
+                                              mean.covid.new.york.deaths.JAS,
+                                              mean.covid.hawaii.deaths.JAS,
+                                              mean.covid.oregon.deaths.JAS,
+                                              mean.covid.rhode.island.deaths.JAS),
+                  Vaccines_Mean_Jul_Aug_Sep = c(mean.covid.california.vacc.JAS,
+                                                mean.covid.florida.vacc.JAS,
+                                                mean.covid.new.york.vacc.JAS,
+                                                mean.covid.hawaii.vacc.JAS,
+                                                mean.covid.oregon.vacc.JAS,
+                                                mean.covid.rhode.island.vacc.JAS)
+)
+State.Deaths_Mean.JAS
+
+```
+
+```{r}
+#Plots showing the vaccine progression
+
+#plot showing vaccines (Jan, Feb, Mar)
+ ggplot(Data = State.Deaths_Mean.JFM) +
+  geom_point(aes( x = State.Deaths_Mean.JFM$State, y = State.Deaths_Mean.JFM$Vaccines_Mean_Jan_Feb_Mar)) +
+  xlab("State") + ylab("Avg People Fully Vaccinated: Jan-Mar 2021") +
+  ylim(0,25000000)
+
+#plot showing vaccines (Apr, May, Jun)
+ ggplot(Data = State.Deaths_Mean.AMJ) +
+  geom_point(aes( x = State.Deaths_Mean.AMJ$State, y = State.Deaths_Mean.AMJ$Vaccines_Mean_Apr_May_Jun)) +
+  xlab("State") + ylab("Avg People Fully Vaccinated: Apr-Jun 2021") +
+   ylim(0,25000000)
+
+ 
+ #plot showing vaccines (Jul, Aug, Sep)
+ ggplot(Data = State.Deaths_Mean.JAS) +
+  geom_point(aes( x = State.Deaths_Mean.JAS$State, y = State.Deaths_Mean.JAS$Vaccines_Mean_Jul_Aug_Sep)) +
+  xlab("State") + ylab("Avg People Fully Vaccinated: Jul-Sep 2021") +
+   ylim(0,25000000)
+
+```
+
+```{r}
+#Plots showing the deaths progression
+
+#plot showing deaths (Jan, Feb, Mar)
+ ggplot(Data = State.Deaths_Mean.JFM) +
+  geom_point(aes( x = State.Deaths_Mean.JFM$State, y = State.Deaths_Mean.JFM$Deaths_Mean_Jan_Feb_Mar)) +
+  xlab("State") + ylab("Avg Deaths: Jan-Mar 2021") +
+  ylim(0,70000)
+
+#plot showing deaths (Apr, May, Jun)
+ ggplot(Data = State.Deaths_Mean.AMJ) +
+  geom_point(aes( x = State.Deaths_Mean.AMJ$State, y = State.Deaths_Mean.AMJ$Deaths_Mean_Apr_May_Jun)) +
+  xlab("State") + ylab("Avg Deaths: Apr-Jun 2021") +
+   ylim(0,70000)
+
+ 
+ #plot showing deaths (Jul, Aug, Sep)
+ ggplot(Data = State.Deaths_Mean.JAS) +
+  geom_point(aes( x = State.Deaths_Mean.JAS$State, y = State.Deaths_Mean.JAS$Deaths_Mean_Jul_Aug_Sep)) +
+  xlab("State") + ylab("Avg Deaths: Jul-Sep 2021") +
+   ylim(0,70000)
+```
+Notice that over time with more vaccines, the deaths do not go up as rapidly as before.
+
+5. Choose two of your six states.  Load their corresponding policy tracker data sets and use the relevant functions in the `stringr` package to extract policies related to any one of `vaccination`, `mask` or `distancing`.
+
+```{r}
+#California policies
+policytrackerCA_vec <- pull(policytrackerCA, policy)
+
+print("CALIFORNIA Policies related to vaccines")
+str_subset(policytrackerCA_vec, "vacc")
+
+print("CALIFORNIA Policies related to masks")
+str_subset(policytrackerCA_vec, "mask")
+
+print("CALIFORNIA Policies related to distancing")
+str_subset(policytrackerCA_vec, "distanc")
+
+#Oregon policies
+policytrackerOR_vec <- pull(policytrackerOR, policy)
+
+print("OREGON Policies related to vaccines")
+str_subset(policytrackerOR_vec, "vacc")
+
+print("OREGON Policies related to masks")
+str_subset(policytrackerOR_vec, "mask")
+
+print("OREGON Policies related to distancing")
+str_subset(policytrackerOR_vec, "distanc")
+
+```
+
+6. Get Creative: formulate and explore ONE question about the 3 highly and 3 mildly affected states with any of the data sets I have provided.
+
+My Question: Which state out of California, Florida, New York, Hawaii, Oregon, and Rhode Island has the biggest case fatality ratio?
+
+```{r}
+#filtering and selecting California, Florida, New York, Hawaii, Oregon, and Rhode Island and the case fatality ratio
+case.fatality.ratio <- covid.usa.daily %>% filter(Province_State == "California" | Province_State == "Florida" | Province_State == "New York" | Province_State == "Hawaii" | Province_State == "Oregon" | Province_State == "Rhode Island") %>% select(Province_State, Case_Fatality_Ratio)
+case.fatality.ratio
+
+#plot
+case.fatality.ratio.plot <- ggplot(case.fatality.ratio, aes(x = Province_State, y = Case_Fatality_Ratio)) +
+  geom_point() +
+  xlab("State") +
+  ylab("Case Fatality Ratio") +
+  theme_economist()
+case.fatality.ratio.plot
+```
+
+The answer to my question is New York.
+
+ 
+ 
+Phewww... **have fun and GOOD LUCK**!!
