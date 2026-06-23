@@ -1,7 +1,7 @@
 ---
 title: "Data Cleaning and Time Series Analysis in R"
 author: "Kira Novitchkova-Burbank"
-date: 'Due: Thursday June 2/2022 by 11:59 pm'
+date: 'June 2022'
 output: rmdformats::material
 subtitle: 'STAT 363'
 ---
