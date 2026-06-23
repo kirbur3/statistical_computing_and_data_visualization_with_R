@@ -1,5 +1,5 @@
 ---
-title: "STAT363 Data Manipulation and Visualization Final Project"
+title: "Data Cleaning and Time Series Analysis in R"
 author: "Kira Novitchkova-Burbank"
 date: 'Due: Thursday June 2/2022 by 11:59 pm'
 output: rmdformats::material
