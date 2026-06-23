@@ -1,0 +1,137 @@
+---
+title: "STAT363 Data Visualization Homework 02"
+author: "Kira Novitchkova-Burbank"
+date: 'Due: Thursday May 12th 2022 by 2:00 pm'
+output: rmdformats::material
+subtitle: 'STAT 363'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+library(tidyr)
+```
+
+# General Information
+
+## Logistics
+
+-  Make a copy of this template to write out your solution, DO NOT rename it. Then knit it as `HW02.Rmd`.
+- Inside this .Rmd file do not include any personal identifier (such as your name, Odin ID, etc.). 
+- Knit your `Rmd` file as `html` and upload both the `Rmd` and `html` files with your solution to D2L in `Assignments > Homework 2` before Thursday May 12th 2022 by 2:00 pm.
+
+
+## Objectives for this week's homework
+
+1. Practice making figures in both base R and ggplot2
+2. Generate hypotheses and explore them graphically
+
+
+
+# Your Task
+
+Write down ONLY ONE question or hypothesis you are interested in exploring from the *world powerplant dataset* found in the [information is beautiful](https://informationisbeautiful.net/visualizations/mega-what-the-worlds-biggest-and-most-notable-power-plants/) website, which includes some nice visualizations.  The original data can be found [here](http://datasets.wri.org/dataset/globalpowerplantdatabase) along with a brief description.  You might want to work with just a subset of the data (e.g. one particular country), or you may choose to transform or summarize your data in the way that best allows you to explore your question.
+
+Note that inside of the `globalpowerplant` folder in Canvas the homework folder there are additional documents with information that may prove useful, in particular be sure to look at the `README.txt` file, which includes the metadata (a description of the variables) in the **Fields** section.
+
+
+
+**The idea is for you to investigate your question/hypothesis graphically.  To do so, generate the figures you consider necessary -- at least two and at most 4, and note that more figures is not necessarily better, fewer but very well thought-out and informative figures can usually do the trick. <span style="color:orange">At least one of your figures should be built using `base R` and at least one using `ggplot`.</span>**
+
+All titles, axes, and legends should be labeled clearly (no raw variable names). You must have at least one graph with `facet_wrap` or `facet_grid`. You must include at least one manually specified legend. You can use other `geoms` like histograms, bar charts, add vertical or horizontal lines, etc. [You may find this data visualization cheat sheet helpful](https://www.rstudio.com/wp-content/uploads/2016/11/ggplot2-cheatsheet-2.1.pdf).
+
+ 
+
+Your document should be aesthetically pleasing, with some organization. You must write up your observations in words as well as showing the graphs. Use chunk options `echo` and `results` to limit the code/output you show in the `.html`.
+
+Below I load in the data, but be careful, there are many rows that you may need to filter out to remove `NA`s in some of your variables of interest. 
+
+Have fun and Good Luck!!
+```{r load_data}
+power <- read.csv('globalpowerplant/global_power_plant_database.csv',
+                  na.strings = c(NA,"","NA"),
+                  header=T)
+```
+
+Recall that you can test (and filter out) for `NAs` using the function `is.na`, which is vectorized! If, for example you want to remove rows with NA's in the variable `year_of_capacity_data`, you can use the following line of code  (look at week 2's class notes for more information about this).
+
+```{r Getting rid of NAs}
+#checking for NA's for country, name, capacity_mw, and primary_fuel
+power <- power %>% filter(!is.na(country)&!is.na(name)&!is.na(capacity_mw)&!is.na(primary_fuel))
+```
+
+# Your question or hypothesis
+
+My Question: What energy source in the US has the most power plants that can produce at least 3000 megawatts?
+
+# Your base R plot(s)
+
+First, before making any plots, I'll be filtering out power by country = USA and capacity_mw >= 3000 and get an idea of what the data looks like.
+
+```{r Power filtered}
+#filtering power
+power %>%
+  filter(country == "USA" & capacity_mw >= 3000.0) %>%
+  select(country, name, capacity_mw, primary_fuel)
+```
+
+Now, I'll make two base R plots that have primary fuel as the independent variable and electrical generating capacity in megawatts as the dependent variable. The reason why I'm making the first plot is because it's good to know just how many power plants USA has and where the average amount of electrical generating capacity in megawatts kind of lies. The first plot gives a good overview of the data and shows outliers pretty well. The capacity in megawatts starts at 0 and goes up to 8000 (all of the values are less than 8000) to accommodate all of the power plants. It gives the full picture and sets the stage for the second base R plot. The second base R plot includes only the power plants that have at least 3000 megawatts worth of capacity (which is what we are looking for).
+
+Base R Plot 1:
+
+```{r base R plot 1}
+#Base R plot 1: boxplot with capacity_mw starting from 0
+boxplot(capacity_mw~primary_fuel, data=
+          power %>%
+          filter(country=="USA"), col=1:14, xlab="name", ylim = c(0,8000), las = 2)
+
+#Manually specified legend
+legend("topright",
+       bty = "n",
+       pch=c(16,16,16),
+       col=c(1:8),
+       legend=c("Biomass", "Coal", "Cogeneration", "Gas", "Geothermal", "Hydro", "Nuclear", "Oil", "Other", "Petcoke", "Solar", "Storage", "Waste", "Wind"))
+
+```
+
+Observations: The power plants that have a capacity of at least 3000 megawatts all seem to be outliers. Not all of the types energy sources have power plants that can generate at least 3000 megawatts. Additionally, from this figure, it seems like Coal has the most power plants that have a capacity of at least 3000 in the US.
+
+Base R Plot 2:
+
+```{r base R plot 2}
+#Base R plot 2: boxplot with capacity_mw starting from 3000
+
+boxplot(capacity_mw~primary_fuel, data=
+          power %>%
+          filter(country=="USA"), col=1:14, xlab="name", ylim = c(3000,8000), las = 2)
+```
+
+Observations: We confirmed that only a few types of energy sources have power plants that have a capacity of at least 3000 megwatts. Also, we confirmed that most of these power plants are outliers. Because of this, it is rare to have such high capacity power plants in the US. Unfortunately, with this plot it is hard to tell if a couple of the power plants have a capacity of at least 3000 megawatts because they are so close to the minimum boundary. Although, this figure confirms that Coal has the most power plants that have a capacity of at least 3000 in the US.
+
+# Your `ggplot` plot(s)
+
+Now I'll make a ggplot that has the names of the power plants as the independent variable and electrical generating capacity in megawatts as the dependent variable. This plot with the help of facet_grid (by primary_fuel) clearly shows what power plants belong to what energy sources. All of these power plants are from the US, and they have a confirmed capacity of at least 3000 megawatts (they are not right on the boundary like in the previous plot). This ggplot helps clearly identify the answer to the question because it is a lot easier to see which energy source has the most power plants that have such high energy capacities.
+
+ggplot with facet_grid:
+
+```{r ggplot}
+#ggplot plot
+power %>%
+  filter(country == "USA" & capacity_mw >= 3000.0) %>%
+  ggplot(aes(name, capacity_mw)) +
+  geom_point(size=3) +
+  facet_grid(~primary_fuel) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1))
+```
+
+Observations:
+Coal has 5 power plants with a capacity of at least 3000 megawatts.
+Gas and Nuclear have 2 power plants with a capacity of at least 3000 megawatts.
+Hydro has 1 power plant with a capacity of at least 3000 megawatts.
+Interestingly, even though Hydro has only 1 power plant within this range, it has the highest capacity power plant, and Coal, which has the most power plants within this range, has the lowest.
+
+So, finally, we have confirmed that the answer to the question "What energy source in the US has the most power plants that can produce at least 3000 megawatts?", is in fact Coal.
+
+
