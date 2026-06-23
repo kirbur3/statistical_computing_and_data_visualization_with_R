@@ -1,7 +1,7 @@
 ---
-title: "STAT363 Data Visualization Homework 02"
+title: "Data Visualization and Statistical Analysis in R"
 author: "Kira Novitchkova-Burbank"
-date: 'Due: Thursday May 12th 2022 by 2:00 pm'
+date: 'May 2022'
 output: rmdformats::material
 subtitle: 'STAT 363'
 ---
